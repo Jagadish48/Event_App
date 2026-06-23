@@ -1,0 +1,43 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  # You can uncomment the below lines to only trigger CD after the CI workflow passes successfully
+  # workflow_run:
+  #   workflows: ["CI Pipeline"]
+  #   types:
+  #     - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Uncomment the following line if using workflow_run, so it only runs if CI passed
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # TODO: Add your deployment steps here. 
+    # Example (Deploy via FTP):
+    # - name: Sync files
+    #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+    #   with:
+    #     server: ${{ secrets.FTP_SERVER }}
+    #     username: ${{ secrets.FTP_USERNAME }}
+    #     password: ${{ secrets.FTP_PASSWORD }}
+    
+    # Example (Deploy via SSH/Rsync):
+    # - name: Deploy to Server
+    #   uses: easingthemes/ssh-deploy@main
+    #   env:
+    #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    #     ARGS: "-rltgoDzvO"
+    #     SOURCE: "./"
+    #     REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+    #     REMOTE_USER: ${{ secrets.REMOTE_USER }}
+    #     TARGET: ${{ secrets.REMOTE_TARGET }}
+
+    - name: Deployment Success
+      run: echo "Deployment steps should be configured here!"

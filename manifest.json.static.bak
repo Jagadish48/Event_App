@@ -1,0 +1,24 @@
+{
+  "name": "Network Events",
+  "short_name": "Events",
+  "description": "Event and Employee Management System",
+  "theme_color": "#0d6efd",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/Backup_Files/",
+  "start_url": "/Backup_Files/index.php",
+  "icons": [
+    {
+      "src": "/Backup_Files/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Backup_Files/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

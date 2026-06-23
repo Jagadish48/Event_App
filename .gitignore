@@ -1,0 +1,35 @@
+# Environment variables
+.env
+
+# Dependencies
+/vendor/
+node_modules/
+
+# User uploads
+/uploads/*
+!/uploads/.gitkeep
+!/uploads/index.html
+
+# Logs and databases
+*.log
+*.sqlite
+error_log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Composer
+composer.phar
