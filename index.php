@@ -99,7 +99,7 @@ $brandLogoUrl = $loginLogoUrl !== '' ? $loginLogoUrl : ($logoMainUrl !== '' ? $l
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="<?php echo SITE_URL; ?>assets/css/bootstrap.min.css?v=<?php echo filemtime(__DIR__ . '/assets/css/bootstrap.min.css'); ?>" rel="stylesheet">
     <link href="<?php echo SITE_URL; ?>assets/css/all.min.css?v=<?php echo filemtime(__DIR__ . '/assets/css/all.min.css'); ?>" rel="stylesheet">
-    <link href="<?php echo SITE_URL; ?>assets/css/style.css" rel="stylesheet">
+    <link href="<?php echo SITE_URL; ?>assets/css/style.css?v=<?php echo time(); ?>" rel="stylesheet">
     
     <!-- PWA Manifest and Meta Tags -->
     <link rel="manifest" href="<?php echo SITE_URL; ?>manifest.php">
