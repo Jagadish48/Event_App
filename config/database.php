@@ -651,28 +651,32 @@ function getBrandingSettings() {
 }
 
 // Helper functions
-function clean_input($data) {
-    $data = trim($data);
-    $data = stripslashes($data);
-    $data = htmlspecialchars($data);
-    return $data;
+if (!function_exists('clean_input')) {
+    function clean_input($data) {
+        $data = trim($data);
+        $data = stripslashes($data);
+        $data = htmlspecialchars($data);
+        return $data;
+    }
 }
 
-function redirect($url) {
-    $target = (string) $url;
-    if ($target === '') {
-        return;
-    }
+if (!function_exists('redirect')) {
+    function redirect($url) {
+        $target = (string) $url;
+        if ($target === '') {
+            return;
+        }
 
-    if (!headers_sent()) {
-        header("Location: $target");
+        if (!headers_sent()) {
+            header("Location: $target");
+            exit();
+        }
+
+        $safe = htmlspecialchars($target, ENT_QUOTES, 'UTF-8');
+        echo "<script>window.location.href='{$safe}';</script>";
+        echo "<noscript><meta http-equiv=\"refresh\" content=\"0;url={$safe}\"></noscript>";
         exit();
     }
-
-    $safe = htmlspecialchars($target, ENT_QUOTES, 'UTF-8');
-    echo "<script>window.location.href='{$safe}';</script>";
-    echo "<noscript><meta http-equiv=\"refresh\" content=\"0;url={$safe}\"></noscript>";
-    exit();
 }
 
 function isLoggedIn() {
