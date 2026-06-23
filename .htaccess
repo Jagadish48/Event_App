@@ -1,0 +1,20 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Deny access to sensitive files
+    <FilesMatch "^\.env|composer\.json|composer\.lock|\.gitignore|\.git">
+        Require all denied
+    </FilesMatch>
+
+    # Route API requests to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(api/.*)$ index.php?route=$1 [QSA,L]
+    
+    # Optional: Force HTTPS (uncomment if you have SSL)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Disable directory browsing
+Options -Indexes
