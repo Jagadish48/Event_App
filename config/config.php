@@ -1,9 +1,9 @@
 <?php
 // Database Configuration
-$host = '127.0.0.1';
-$dbname = 'event_app';
-$username = 'root';
-$password = '';
+$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
+$dbname = $_ENV['DB_NAME'] ?? 'event_final';
+$username = $_ENV['DB_USER'] ?? 'root';
+$password = $_ENV['DB_PASS'] ?? '';
 
 // Create connection
 $conn = null;
