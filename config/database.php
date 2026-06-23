@@ -26,10 +26,10 @@ if (file_exists($envFile)) {
 }
 
 // Database Configuration
-$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$dbname = $_ENV['DB_NAME'] ?? 'event_final';
-$username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? '';
+$host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: '127.0.0.1';
+$dbname = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'event_final';
+$username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
+$password = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
 
 // Create connection
 /**
