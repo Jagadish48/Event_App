@@ -8,11 +8,13 @@ class DatabaseTest extends TestCase
 {
     public function testDatabaseConnection()
     {
+        // Declare $pdo as global BEFORE requiring the file, so it assigns to the global scope
+        global $pdo;
+        
         // This will load the database.php file which attempts to connect using PDO
         require_once __DIR__ . '/../config/database.php';
         
         // Assert that the $pdo variable exists and is a valid PDO instance
-        global $pdo;
         $this->assertInstanceOf(\PDO::class, $pdo, "The database connection failed or PDO instance is not created.");
     }
 

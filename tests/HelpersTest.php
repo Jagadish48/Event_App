@@ -17,7 +17,7 @@ class HelpersTest extends TestCase
     public function testCleanInputEscapesHtml()
     {
         $input = "<script>alert('xss')</script>";
-        $expected = "&lt;script&gt;alert('xss')&lt;/script&gt;";
+        $expected = "&lt;script&gt;alert(&#039;xss&#039;)&lt;/script&gt;";
         
         $this->assertEquals($expected, clean_input($input));
     }
