@@ -104,8 +104,11 @@ $brandLogoUrl = $loginLogoUrl !== '' ? $loginLogoUrl : ($logoMainUrl !== '' ? $l
     <!-- PWA Manifest and Meta Tags -->
     <link rel="manifest" href="<?php echo SITE_URL; ?>manifest.php">
     <meta name="theme-color" content="#0d6efd">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="<?php echo htmlspecialchars($appName); ?>">
+    <link rel="apple-touch-icon" href="<?php echo SITE_URL; ?>assets/icons/icon-192.png">
     <script>
         window.SITE_URL = '<?php echo addslashes(SITE_URL); ?>';
     </script>
@@ -410,21 +413,14 @@ $brandLogoUrl = $loginLogoUrl !== '' ? $loginLogoUrl : ($logoMainUrl !== '' ? $l
             });
         });
 
-        // If already installed as a PWA, mark buttons accordingly
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            document.querySelectorAll('[data-pwa-install], .js-pwa-install').forEach(function(btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-check me-2"></i>App Installed';
-            });
-            
-            const androidBtn = document.getElementById('btn-download-android');
-            const iosBtn = document.getElementById('btn-download-ios');
-            if (androidBtn) {
-                androidBtn.innerHTML = '<i class="fas fa-external-link-alt me-2"></i>Open App';
-                androidBtn.onclick = function() { alert('App is already installed. Please open it from your home screen.'); };
-            }
-            if (iosBtn) {
-                iosBtn.style.display = 'none';
+        // If already installed as a PWA or running inside an APK WebView, hide the download section completely
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isWebView = /(wv|WebView|Android.*Version\/[0-9]\.[0-9])/i.test(navigator.userAgent);
+        
+        if (isPWA || isWebView) {
+            const downloadSection = document.getElementById('app-download-section');
+            if (downloadSection) {
+                downloadSection.style.display = 'none';
             }
         } else {
             window.addEventListener('beforeinstallprompt', function(e) {
@@ -444,15 +440,15 @@ $brandLogoUrl = $loginLogoUrl !== '' ? $loginLogoUrl : ($logoMainUrl !== '' ? $l
                     window.triggerPWAInstall();
                     return;
                 }
-                const apkUrl = window.SITE_URL + 'downloads/app.apk';
+                const apkUrl = window.SITE_URL + 'app-release.apk';
                 if (/android/i.test(navigator.userAgent)) {
-                     alert('To install:\\n1. Download the APK.\\n2. Open the downloaded file.\\n3. Allow installation from unknown sources if prompted.');
+                     alert('To install:\n1. Download the APK.\n2. Open the downloaded file.\n3. Allow installation from unknown sources if prompted.');
                      window.location.href = apkUrl;
                 } else {
                      alert('Please visit this page on an Android device to download the app.');
                 }
             } else if (platform === 'ios') {
-                alert('To install on iPhone/iPad:\\n1. Tap the Share button (square with arrow pointing up) at the bottom of Safari.\\n2. Scroll down and tap "Add to Home Screen".');
+                alert('To install on iPhone/iPad:\n1. Tap the Share button (square with arrow pointing up) at the bottom of Safari.\n2. Scroll down and tap "Add to Home Screen".');
             }
         }
     </script>

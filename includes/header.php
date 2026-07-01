@@ -61,6 +61,8 @@ if (empty($_SESSION['csrf_token'])) {
     <meta name="theme-color" content="#0d6efd">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="<?php echo htmlspecialchars($appName); ?>">
+    <link rel="apple-touch-icon" href="<?php echo SITE_URL; ?>assets/icons/icon-192.png">
     <script>
         window.SITE_URL = '<?php echo addslashes(SITE_URL); ?>';
     </script>

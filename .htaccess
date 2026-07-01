@@ -18,3 +18,6 @@
 
 # Disable directory browsing
 Options -Indexes
+
+# Add MIME type for Android APK files
+AddType application/vnd.android.package-archive .apk

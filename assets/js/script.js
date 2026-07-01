@@ -151,13 +151,13 @@ function initializeProfilePhotoPreview() {
                 if (f.size > maxBytes) {
                     input.value = '';
                     setPreview('');
-                    if (typeof showAlert === 'function') showAlert('danger', 'Max file size is 2MB.');
+                    if (typeof showToast === 'function') showToast('danger', 'Max file size is 2MB.');
                     return;
                 }
                 if (!typeOk && !extOk) {
                     input.value = '';
                     setPreview('');
-                    if (typeof showAlert === 'function') showAlert('danger', 'Only JPG, JPEG, PNG, and WEBP files are allowed.');
+                    if (typeof showToast === 'function') showToast('danger', 'Only JPG, JPEG, PNG, and WEBP files are allowed.');
                     return;
                 }
 
@@ -382,7 +382,7 @@ function initializeUrlAlerts() {
         if (!shown.length) return;
 
         const last = shown[shown.length - 1];
-        showAlert(last[0], last[1]);
+        showToast(last[0], last[1]);
 
         ['success', 'error', 'warning', 'info'].forEach(function(k) { params.delete(k); });
         window.history.replaceState({}, document.title, url.pathname + (params.toString() ? '?' + params.toString() : '') + url.hash);

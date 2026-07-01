@@ -13,6 +13,14 @@ function initAttendanceSystem(employeeInfo) {
     console.log('[initAttendanceSystem] employeeData set:', employeeData);
 }
 
+// Helper: Promise timeout wrapper
+const withTimeout = (promise, ms, timeoutError) => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutError)), ms))
+    ]);
+};
+
 // Get current location with high accuracy
 async function getCurrentLocation() {
     return new Promise((resolve, reject) => {
@@ -80,7 +88,11 @@ async function startCamera(facingMode = 'user') {
             }
         };
         
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await withTimeout(
+            navigator.mediaDevices.getUserMedia(constraints),
+            5000,
+            'Camera request timed out or was blocked'
+        );
         const video = document.getElementById('attendanceCameraVideo');
         
         if (video) {
@@ -99,8 +111,90 @@ async function startCamera(facingMode = 'user') {
         currentFacingMode = facingMode;
     } catch (error) {
         console.error('Camera error:', error);
-        showAlert('danger', 'Camera access denied: ' + error.message);
-        closeAttendanceModal();
+        handleCameraFallback(error.message);
+    }
+}
+
+// Fallback for Android WebView / no HTTPS
+function handleCameraFallback(errorMessage) {
+    const placeholder = document.getElementById('attendanceCameraPlaceholder');
+    if (placeholder) {
+        placeholder.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i><p class="text-muted fs-5">Live camera unavailable.</p>';
+        placeholder.style.display = 'flex';
+    }
+    
+    let fallbackInput = document.getElementById('attendanceFallbackInput');
+    if (!fallbackInput) {
+        fallbackInput = document.createElement('input');
+        fallbackInput.type = 'file';
+        fallbackInput.accept = 'image/*';
+        fallbackInput.capture = 'environment';
+        fallbackInput.id = 'attendanceFallbackInput';
+        fallbackInput.style.display = 'none';
+        
+        fallbackInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = async function() {
+                        const canvas = document.getElementById('attendanceCameraCanvas');
+                        const context = canvas.getContext('2d');
+                        
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        context.drawImage(img, 0, 0);
+                        
+                        await addAttendanceOverlay(canvas, context);
+                        capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+                        
+                        const previewImg = document.getElementById('attendanceCameraPreview');
+                        if (previewImg) {
+                            previewImg.src = capturedImageData;
+                            previewImg.style.display = 'block';
+                        }
+                        
+                        document.getElementById('attendanceCaptureBtn').style.display = 'none';
+                        document.getElementById('attendanceRetakeBtn').style.display = 'inline-block';
+                        document.getElementById('attendanceSubmitBtn').style.display = 'inline-block';
+                        
+                        const fallbackBtn = document.getElementById('attendanceFallbackBtn');
+                        if (fallbackBtn) fallbackBtn.style.display = 'none';
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+        document.body.appendChild(fallbackInput);
+    }
+    
+    let fallbackBtn = document.getElementById('attendanceFallbackBtn');
+    if (!fallbackBtn) {
+        fallbackBtn = document.createElement('button');
+        fallbackBtn.id = 'attendanceFallbackBtn';
+        fallbackBtn.className = 'btn btn-primary mt-3';
+        fallbackBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Open System Camera';
+        fallbackBtn.onclick = function() { fallbackInput.click(); };
+        
+        const placeholder = document.getElementById('attendanceCameraPlaceholder');
+        if (placeholder && placeholder.parentNode) {
+            placeholder.parentNode.appendChild(fallbackBtn);
+        }
+    }
+    fallbackBtn.style.display = 'inline-block';
+    
+    document.getElementById('attendanceSwitchFrontBtn').style.display = 'none';
+    document.getElementById('attendanceSwitchBackBtn').style.display = 'none';
+    document.getElementById('attendanceCaptureBtn').style.display = 'none';
+    document.getElementById('attendanceRetakeBtn').style.display = 'none';
+    document.getElementById('attendanceSubmitBtn').style.display = 'none';
+    
+    const previewImg = document.getElementById('attendanceCameraPreview');
+    if (previewImg) previewImg.style.display = 'none';
+    
+    if (typeof showToast === 'function') {
+        showToast('warning', 'Live camera access failed. Please use the fallback button to take a photo. (' + (errorMessage || '') + ')');
     }
 }
 
@@ -279,20 +373,42 @@ async function openAttendanceModal(type) {
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
     
-    // First request location permission
-    try {
-        console.log('[openAttendanceModal] Getting location');
-        locationData = await getCurrentLocation();
-        console.log('[openAttendanceModal] Location obtained:', locationData);
-    } catch (error) {
-        showAlert('danger', 'Location permission is required to mark attendance: ' + error.message);
-        bsModal.hide();
-        return;
+    // Reset placeholder UI
+    const placeholder = document.getElementById('attendanceCameraPlaceholder');
+    if (placeholder) {
+        placeholder.innerHTML = '<i class="fas fa-spinner fa-4x fa-spin text-muted mb-3"></i><p class="text-muted fs-5">Requesting permissions and starting camera...</p>';
+        placeholder.style.display = 'flex';
+    }
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+        console.log('[openAttendanceModal] Mobile detected, auto-opening system camera');
+        handleCameraFallback('Auto-triggering mobile system camera');
+        const fallbackInput = document.getElementById('attendanceFallbackInput');
+        if (fallbackInput) {
+            // Trigger native camera instantly within the user gesture chain
+            fallbackInput.click();
+        }
     }
     
-    // Then start front camera
-    console.log('[openAttendanceModal] Starting camera');
-    await startCamera('user');
+    // First request location permission (runs concurrently with camera if mobile)
+    try {
+        console.log('[openAttendanceModal] Getting location');
+        locationData = await withTimeout(getCurrentLocation(), 5000, 'Location request timed out');
+        console.log('[openAttendanceModal] Location obtained:', locationData);
+    } catch (error) {
+        console.warn('Location failed or timed out:', error);
+        locationData = null;
+        if (typeof showToast === 'function') {
+            showToast('warning', 'Could not get exact location. Proceeding with photo capture.');
+        }
+    }
+    
+    if (!isMobile) {
+        // Then start front camera for desktop
+        console.log('[openAttendanceModal] Starting camera');
+        await startCamera('user');
+    }
     console.log('[openAttendanceModal] DONE');
 }
 
@@ -317,6 +433,11 @@ function closeAttendanceModal() {
     document.getElementById('attendanceCaptureBtn').style.display = 'none';
     document.getElementById('attendanceRetakeBtn').style.display = 'none';
     document.getElementById('attendanceSubmitBtn').style.display = 'none';
+    
+    const fallbackBtn = document.getElementById('attendanceFallbackBtn');
+    if (fallbackBtn) {
+        fallbackBtn.style.display = 'none';
+    }
 }
 
 // Submit attendance to server
@@ -325,7 +446,7 @@ async function submitAttendance() {
     console.log('[submitAttendance] capturedImageData:', !!capturedImageData);
     console.log('[submitAttendance] locationData:', locationData);
     if (!capturedImageData) {
-        showAlert('danger', 'Please capture a photo first');
+        showToast('danger', 'Please capture a photo first');
         return;
     }
     
@@ -373,7 +494,7 @@ async function submitAttendance() {
         console.log('[submitAttendance] Result:', result);
         
         if (result.success) {
-            showAlert('success', result.message);
+            showToast('success', result.message);
             closeAttendanceModal();
             
             // Reload page after short delay
@@ -381,11 +502,11 @@ async function submitAttendance() {
                 window.location.reload();
             }, 1500);
         } else {
-            showAlert('danger', result.message || result.error || 'Failed to mark attendance');
+            showToast('danger', result.message || result.error || 'Failed to mark attendance');
         }
     } catch (error) {
         console.error('[submitAttendance] Error:', error);
-        showAlert('danger', 'Error submitting attendance: ' + error.message);
+        showToast('danger', 'Error submitting attendance: ' + error.message);
     } finally {
         hideLoading();
     }

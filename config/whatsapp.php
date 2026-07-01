@@ -353,7 +353,7 @@ function sendWhatsAppMessage(string $recipient, string $triggerType, array $vari
 
     $responseRaw = @file_get_contents($apiUrl, false, $ctx);
     $httpCode    = 0;
-    $headers = http_get_last_response_headers();
+    $headers = isset($http_response_header) ? $http_response_header : [];
     if (is_array($headers)) {
         foreach ($headers as $h) {
             if (preg_match('/HTTP\/\d\.\d\s+(\d{3})/', $h, $m)) {
