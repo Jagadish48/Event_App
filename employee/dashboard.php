@@ -1043,7 +1043,7 @@ try {
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center d-flex flex-column align-items-center justify-content-center" style="min-height: 400px;">
-                <video id="attendanceCameraVideo" autoplay playsinline style="display: none; max-width: 100%; max-height: 60vh; border-radius: 8px; object-fit: contain;"></video>
+                <video id="attendanceCameraVideo" autoplay playsinline muted style="display: none; max-width: 100%; max-height: 60vh; border-radius: 8px; object-fit: contain;"></video>
                 <canvas id="attendanceCameraCanvas" style="display: none;"></canvas>
                 <img id="attendanceCameraPreview" src="" alt="Captured Photo Preview" style="display: none; max-width: 100%; max-height: 60vh; border-radius: 8px; object-fit: contain;">
                 <div id="attendanceCameraPlaceholder" style="display: flex; flex-direction: column; align-items: center;">

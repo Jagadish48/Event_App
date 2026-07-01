@@ -77,9 +77,15 @@ function stopCamera() {
 
 // Start camera with specific facing mode
 async function startCamera(facingMode = 'user') {
+    console.log(`[startCamera] Requesting camera with facingMode: ${facingMode}`);
     try {
         stopCamera();
         
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.error('[startCamera] navigator.mediaDevices.getUserMedia is undefined');
+            throw new Error('Camera API not supported (HTTPS required or browser unsupported).');
+        }
+
         const constraints = {
             video: {
                 facingMode: facingMode,
@@ -87,17 +93,33 @@ async function startCamera(facingMode = 'user') {
                 height: { ideal: 720 }
             }
         };
+        console.log('[startCamera] Using constraints:', constraints);
         
         const stream = await withTimeout(
             navigator.mediaDevices.getUserMedia(constraints),
-            5000,
-            'Camera request timed out or was blocked'
+            8000,
+            'Camera request timed out (user took too long or system blocked it)'
         );
+        console.log('[startCamera] Stream obtained successfully:', stream.id);
         const video = document.getElementById('attendanceCameraVideo');
         
         if (video) {
             video.srcObject = stream;
             video.style.display = 'block';
+            console.log('[startCamera] Attempting to play video stream...');
+            
+            // Wait for video to load metadata to ensure dimensions are available
+            await new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    console.log(`[startCamera] Video metadata loaded. Dimensions: ${video.videoWidth}x${video.videoHeight}`);
+                    resolve();
+                };
+            });
+            
+            await video.play();
+            console.log('[startCamera] Video playing successfully.');
+        } else {
+            console.error('[startCamera] Video element not found in DOM.');
         }
         
         document.getElementById('attendanceCameraPlaceholder').style.display = 'none';
@@ -110,16 +132,29 @@ async function startCamera(facingMode = 'user') {
         cameraStream = stream;
         currentFacingMode = facingMode;
     } catch (error) {
-        console.error('Camera error:', error);
-        handleCameraFallback(error.message);
+        console.error('[startCamera] Camera error caught:', error.name, error.message);
+        handleCameraFallback(error);
     }
 }
 
 // Fallback for Android WebView / no HTTPS
-function handleCameraFallback(errorMessage) {
+function handleCameraFallback(error) {
+    console.log('[handleCameraFallback] Triggered with error:', error);
+    let errorMsg = typeof error === 'string' ? error : (error.message || 'Unknown error');
+    
+    // Map common DOMExceptions to user-friendly messages
+    if (error.name === 'NotAllowedError') {
+        errorMsg = 'Camera permission denied by user or device settings.';
+    } else if (error.name === 'NotFoundError') {
+        errorMsg = 'No camera device found on this device.';
+    } else if (error.name === 'NotReadableError') {
+        errorMsg = 'Camera is already in use by another application.';
+    }
+    
+    console.warn(`[handleCameraFallback] Mapped error message: ${errorMsg}`);
     const placeholder = document.getElementById('attendanceCameraPlaceholder');
     if (placeholder) {
-        placeholder.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i><p class="text-muted fs-5">Live camera unavailable.</p>';
+        placeholder.innerHTML = `<i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i><p class="text-muted fs-5">${errorMsg}</p>`;
         placeholder.style.display = 'flex';
     }
     
@@ -203,20 +238,34 @@ async function capturePhoto() {
     console.log('[capturePhoto] STARTED');
     const video = document.getElementById('attendanceCameraVideo');
     const canvas = document.getElementById('attendanceCameraCanvas');
-    console.log('[capturePhoto] video:', !!video, 'canvas:', !!canvas);
+    console.log(`[capturePhoto] Elements found - video: ${!!video}, canvas: ${!!canvas}`);
+    
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+        console.error('[capturePhoto] Video is not playing or has 0 dimensions', {
+            videoWidth: video ? video.videoWidth : null,
+            videoHeight: video ? video.videoHeight : null
+        });
+        if (typeof showToast === 'function') showToast('danger', 'Camera stream is not ready or failed to play.');
+        return;
+    }
+
     const context = canvas.getContext('2d');
     
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    console.log('[capturePhoto] canvas dimensions:', canvas.width, 'x', canvas.height);
+    console.log('[capturePhoto] Canvas initialized with dimensions:', canvas.width, 'x', canvas.height);
     context.drawImage(video, 0, 0);
     
     // Add overlay with employee details, date, time, location
-    console.log('[capturePhoto] Adding overlay');
+    console.log('[capturePhoto] Adding overlay text...');
     await addAttendanceOverlay(canvas, context);
     
     capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
-    console.log('[capturePhoto] capturedImageData created, length:', capturedImageData.length);
+    console.log(`[capturePhoto] Base64 image generated. Length: ${capturedImageData.length}`);
+    
+    if (capturedImageData.length < 1000) {
+        console.warn('[capturePhoto] Warning: Generated image data is unusually small, possibly corrupt or empty.');
+    }
     
     // Show preview
     const previewImg = document.getElementById('attendanceCameraPreview');
@@ -380,18 +429,7 @@ async function openAttendanceModal(type) {
         placeholder.style.display = 'flex';
     }
 
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-        console.log('[openAttendanceModal] Mobile detected, auto-opening system camera');
-        handleCameraFallback('Auto-triggering mobile system camera');
-        const fallbackInput = document.getElementById('attendanceFallbackInput');
-        if (fallbackInput) {
-            // Trigger native camera instantly within the user gesture chain
-            fallbackInput.click();
-        }
-    }
-    
-    // First request location permission (runs concurrently with camera if mobile)
+    // First request location permission
     try {
         console.log('[openAttendanceModal] Getting location');
         locationData = await withTimeout(getCurrentLocation(), 5000, 'Location request timed out');
@@ -404,11 +442,9 @@ async function openAttendanceModal(type) {
         }
     }
     
-    if (!isMobile) {
-        // Then start front camera for desktop
-        console.log('[openAttendanceModal] Starting camera');
-        await startCamera('user');
-    }
+    // Start camera (works for both desktop and mobile now)
+    console.log('[openAttendanceModal] Starting camera');
+    await startCamera('user');
     console.log('[openAttendanceModal] DONE');
 }
 
@@ -461,16 +497,16 @@ async function submitAttendance() {
         // Prepare form data
         const formData = new FormData();
         formData.append('type', currentAttendanceType);
-        formData.append('latitude', locationData.latitude);
-        formData.append('longitude', locationData.longitude);
-        formData.append('address', locationData.address || '');
+        formData.append('latitude', locationData ? locationData.latitude : '');
+        formData.append('longitude', locationData ? locationData.longitude : '');
+        formData.append('address', (locationData && locationData.address) ? locationData.address : '');
         formData.append('camera_type', currentFacingMode === 'user' ? 'front' : 'back');
         
-        // Convert base64 image to File object
-        console.log('[submitAttendance] Converting image');
-        const imageFile = await dataURLtoFile(capturedImageData, 'attendance_' + Date.now() + '.jpg');
-        formData.append('image', imageFile);
-        console.log('[submitAttendance] Image File size:', imageFile.size);
+        // Convert base64 image to Blob object (more compatible than File constructor)
+        console.log('[submitAttendance] Converting image dataURL to Blob');
+        const imageBlob = dataURLtoBlob(capturedImageData);
+        formData.append('image', imageBlob, 'attendance_' + Date.now() + '.jpg');
+        console.log('[submitAttendance] Image Blob size:', imageBlob.size);
         console.log('[submitAttendance] FormData entries:', Array.from(formData.entries()));
         
         console.log('[submitAttendance] Sending request to attendance_process.php');
@@ -512,9 +548,9 @@ async function submitAttendance() {
     }
 }
 
-// Helper: Convert data URL to File object
-function dataURLtoFile(dataURL, filename) {
-    console.log('[dataURLtoFile] Called');
+// Helper: Convert data URL to Blob object (High compatibility for older WebViews)
+function dataURLtoBlob(dataURL) {
+    console.log('[dataURLtoBlob] Parsing dataURL string...');
     const arr = dataURL.split(',');
     const mimeMatch = arr[0].match(/:(.*?);/);
     const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
@@ -524,7 +560,8 @@ function dataURLtoFile(dataURL, filename) {
     while (n--) {
         u8arr[n] = bstr.charCodeAt(n);
     }
-    return new File([u8arr], filename, { type: mime });
+    console.log(`[dataURLtoBlob] Created Blob with size ${u8arr.length} bytes, type: ${mime}`);
+    return new Blob([u8arr], { type: mime });
 }
 
 // Attach event listeners when DOM is loaded
