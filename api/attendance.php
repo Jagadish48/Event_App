@@ -64,7 +64,7 @@ switch ($requestMethod) {
                     $summary = getMonthlyPolicySummary($userId, $month);
                     apiResponse($summary);
                 } catch (Exception $e) {
-                    apiError('Could not get summary: ' . $e->getMessage(), 500);
+                    apiError('Could not get summary.', 500);
                 }
                 break;
 

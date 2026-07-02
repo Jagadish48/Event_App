@@ -67,9 +67,26 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
-// Session configuration
+// Session configuration — hardened cookie flags
 if (session_status() === PHP_SESSION_NONE) {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $isHttps,
+        'httponly'  => true,
+        'samesite' => 'Strict',
+    ]);
     session_start();
+}
+
+// Security response headers
+if (!headers_sent()) {
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
 }
 
 // Application settings
@@ -138,6 +155,43 @@ define('UPLOAD_PATH', __DIR__ . '/../uploads/');
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 if (!defined('IDENTITY_MAX_FILE_SIZE')) {
     define('IDENTITY_MAX_FILE_SIZE', 2 * 1024 * 1024); // 2MB
+}
+
+// ── CSRF Token Helpers ──────────────────────────────────────────
+if (!function_exists('csrf_token')) {
+    /**
+     * Generate or retrieve the current session CSRF token.
+     */
+    function csrf_token(): string {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+}
+
+if (!function_exists('csrf_input')) {
+    /**
+     * Return a hidden <input> tag with the CSRF token.
+     */
+    function csrf_input(): string {
+        return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token()) . '">';
+    }
+}
+
+if (!function_exists('verify_csrf_token')) {
+    /**
+     * Validate the submitted CSRF token against the session token.
+     * Returns true if valid, false otherwise.
+     */
+    function verify_csrf_token(): bool {
+        $submitted = $_POST['csrf_token'] ?? '';
+        $stored = $_SESSION['csrf_token'] ?? '';
+        if ($submitted === '' || $stored === '') {
+            return false;
+        }
+        return hash_equals($stored, $submitted);
+    }
 }
 
 // Load WhatsApp service layer
@@ -902,7 +956,7 @@ function uploadFile($file, $folder = '') {
     $uploadDir = $uploadBase . ($folder !== '' ? ($folder . DIRECTORY_SEPARATOR) : '');
 
     if ($folder !== '' && !is_dir($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
+        mkdir($uploadDir, 0755, true);
     }
 
     $filepath = $uploadDir . $filename;
@@ -1028,7 +1082,7 @@ function uploadProfileImage(array $file, int $userId): string {
     $uploadBase = rtrim((string) UPLOAD_PATH, "/\\") . DIRECTORY_SEPARATOR;
     $uploadDir = $uploadBase . $folder . DIRECTORY_SEPARATOR;
     if (!is_dir($uploadDir)) {
-        @mkdir($uploadDir, 0777, true);
+        @mkdir($uploadDir, 0755, true);
     }
 
     try {
@@ -1130,7 +1184,7 @@ function uploadExcelFile($file, $folder = '') {
     $uploadDir = $uploadBase . ($folder !== '' ? ($folder . DIRECTORY_SEPARATOR) : '');
 
     if ($folder !== '' && !is_dir($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
+        mkdir($uploadDir, 0755, true);
     }
 
     $filepath = $uploadDir . $filename;

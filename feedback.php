@@ -33,6 +33,9 @@ if ($token !== '') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token()) {
+        $error = 'Invalid request. Please try again.';
+    } else {
     try {
         $rating = (int) ($_POST['rating'] ?? 0);
         $message = trim((string) ($_POST['message'] ?? ''));
@@ -41,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
+    } // end CSRF check
 }
 ?>
 <!DOCTYPE html>
@@ -90,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
 
                             <form method="POST" action="">
+                                <?php echo csrf_input(); ?>
                                 <input type="hidden" name="t" value="<?php echo htmlspecialchars($token); ?>">
                                 <div class="mb-3">
                                     <label class="form-label">Rating *</label>

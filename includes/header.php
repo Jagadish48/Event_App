@@ -50,6 +50,8 @@ if (empty($_SESSION['csrf_token'])) {
     <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?><?php echo htmlspecialchars($appName); ?></title>
     <?php if ($faviconUrl !== ''): ?>
         <link rel="icon" href="<?php echo htmlspecialchars($faviconUrl); ?>">
+    <?php else: ?>
+        <link rel="icon" href="<?php echo SITE_URL; ?>assets/icons/icon-192.png">
     <?php endif; ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,9 +60,10 @@ if (empty($_SESSION['csrf_token'])) {
     <link href="<?php echo SITE_URL; ?>assets/css/all.min.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/all.min.css'); ?>" rel="stylesheet">
     <link href="<?php echo SITE_URL; ?>assets/css/style.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="manifest" href="<?php echo SITE_URL; ?>manifest.php">
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#0F172A">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="<?php echo htmlspecialchars($appName); ?>">
     <link rel="apple-touch-icon" href="<?php echo SITE_URL; ?>assets/icons/icon-192.png">
     <script>

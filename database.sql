@@ -137,6 +137,11 @@ CREATE TABLE event_expenses (
     UNIQUE KEY unique_event_expense (event_id, expense_id)
 );
 
+-- !! SECURITY WARNING !! --
+-- The passwords below are SAMPLE credentials for development ONLY.
+-- You MUST change these passwords immediately after deploying to production.
+-- Default admin password is 'admin123' — change it via the admin panel or by running:
+--   UPDATE users SET password = '$2y$10$<NEW_BCRYPT_HASH>' WHERE email = 'admin@eventmanager.com';
 -- Insert default admin user (password: admin123)
 INSERT INTO users (name, email, password, role) VALUES 
 ('Admin User', 'admin@eventmanager.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');

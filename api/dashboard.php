@@ -133,5 +133,5 @@ try {
         ]);
     }
 } catch (PDOException $e) {
-    apiError('Database error: ' . $e->getMessage(), 500);
+    apiError('Database error.', 500);
 }

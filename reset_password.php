@@ -25,11 +25,14 @@ if ($token === '' || $userId === 0) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $showForm) {
+    if (!verify_csrf_token()) {
+        $error = 'Invalid request. Please try again.';
+    } else {
     $newPassword = trim((string)($_POST['password'] ?? ''));
     $confirmPassword = trim((string)($_POST['confirm_password'] ?? ''));
 
-    if (strlen($newPassword) < 6) {
-        $error = 'Password must be at least 6 characters long.';
+    if (strlen($newPassword) < 8) {
+        $error = 'Password must be at least 8 characters long.';
     } elseif ($newPassword !== $confirmPassword) {
         $error = 'Passwords do not match.';
     } elseif (usePasswordResetToken($userId, $token, $newPassword)) {
@@ -39,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $showForm) {
     } else {
         $error = 'Failed to reset password. Please try again.';
     }
+    } // end CSRF check
 }
 
 $branding = getBrandingSettings();
@@ -149,6 +153,7 @@ $faviconUrl = resolveAppAssetUrl($branding['favicon'] ?? '');
 
                     <?php if ($showForm): ?>
                         <form method="POST" action="reset_password.php?token=<?php echo urlencode($token); ?>&user_id=<?php echo $userId; ?>" class="mt-3">
+                            <?php echo csrf_input(); ?>
                             <div class="mb-3">
                                 <label for="password" class="form-label">New Password</label>
                                 <div class="input-group">

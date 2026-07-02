@@ -51,7 +51,7 @@ switch ($requestMethod) {
             }
             apiResponse($expenses, '', true, 200, ['page' => $page, 'per_page' => $perPage, 'count' => count($expenses)]);
         } catch (PDOException $e) {
-            apiError('Database error: ' . $e->getMessage(), 500);
+            apiError('Database error.', 500);
         }
         break;
 
@@ -72,7 +72,7 @@ switch ($requestMethod) {
             $id = (int) $pdo->lastInsertId();
             apiResponse(['id' => $id], 'Expense submitted for approval.', true, 201);
         } catch (PDOException $e) {
-            apiError('Database error: ' . $e->getMessage(), 500);
+            apiError('Database error.', 500);
         }
         break;
 

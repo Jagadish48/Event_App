@@ -33,3 +33,6 @@ desktop.ini
 
 # Composer
 composer.phar
+
+# Binary artifacts (APK releases should go in CI/CD releases, not source control)
+*.apk

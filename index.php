@@ -174,6 +174,7 @@ $brandLogoUrl = $loginLogoUrl !== '' ? $loginLogoUrl : ($logoMainUrl !== '' ? $l
 
                         <form method="POST" action="login.php" class="mt-3">
                             <input type="hidden" name="expected_role" value="admin">
+                            <?php echo csrf_input(); ?>
 
                             <div class="mb-3">
                                 <label for="email" class="form-label">Admin email</label>
@@ -264,6 +265,7 @@ $brandLogoUrl = $loginLogoUrl !== '' ? $loginLogoUrl : ($logoMainUrl !== '' ? $l
 
                     <form method="POST" action="login.php" class="mt-3">
                         <input type="hidden" name="expected_role" value="employee">
+                        <?php echo csrf_input(); ?>
 
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>

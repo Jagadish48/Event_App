@@ -37,6 +37,9 @@ try {
 } catch (PDOException $e) {}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token()) {
+        $error = 'Invalid request. Please try again.';
+    } else {
     $email = trim((string)($_POST['email'] ?? ''));
 
     if ($email === '') {
@@ -69,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Database error. Please try again.';
         }
     }
+    } // end CSRF check
 }
 
 $branding = getBrandingSettings();
@@ -175,6 +179,7 @@ $faviconUrl = resolveAppAssetUrl($branding['favicon'] ?? '');
                         </a>
                     <?php else: ?>
                         <form method="POST" action="forgot_password.php<?php echo $role !== '' ? '?role=' . urlencode($role) : ''; ?>">
+                            <?php echo csrf_input(); ?>
                             <input type="hidden" name="expected_role" value="<?php echo htmlspecialchars($role); ?>">
 
                             <div class="mb-3">

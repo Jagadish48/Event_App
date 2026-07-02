@@ -15,7 +15,13 @@ require_once __DIR__ . '/config/whatsapp.php';
 // 1. Verification Request from Meta (GET)
 // Meta sends a GET request to verify the webhook URL when you first configure it.
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $verify_token = wa_env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', 'your_random_secret_here');
+    $verify_token = wa_env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', '');
+    if ($verify_token === '') {
+        // No verify token configured — reject the verification request
+        http_response_code(403);
+        echo 'WHATSAPP_WEBHOOK_VERIFY_TOKEN not configured.';
+        exit;
+    }
     
     $mode = $_GET['hub_mode'] ?? '';
     $token = $_GET['hub_verify_token'] ?? '';

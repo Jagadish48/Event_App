@@ -8,7 +8,21 @@
  */
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
+
+// CORS: Restrict to same-origin or configured allowed origins
+$allowedOrigins = [];
+$envOrigins = trim((string) ($_ENV['API_ALLOWED_ORIGINS'] ?? getenv('API_ALLOWED_ORIGINS') ?: ''));
+if ($envOrigins !== '') {
+    $allowedOrigins = array_map('trim', explode(',', $envOrigins));
+}
+$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($requestOrigin !== '' && in_array($requestOrigin, $allowedOrigins, true)) {
+    header('Access-Control-Allow-Origin: ' . $requestOrigin);
+    header('Vary: Origin');
+} elseif (empty($allowedOrigins)) {
+    // If no origins are configured, allow same-origin only (no CORS header)
+    // TODO(security): Configure API_ALLOWED_ORIGINS in .env for cross-origin clients
+}
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With');
 
@@ -40,12 +54,11 @@ function apiError($message, $status = 400, $data = null) {
 function getAuthUser(): ?array {
     global $pdo;
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
-    if ($authHeader === '') {
-        // Also check query param for easy browser testing
-        $token = $_GET['api_token'] ?? '';
-    } else {
+    $token = '';
+    if ($authHeader !== '') {
         $token = str_replace('Bearer ', '', $authHeader);
     }
+    // NOTE: api_token via query param removed — tokens must be sent via Authorization header only
     $token = trim((string) $token);
     if ($token === '') return null;
 
@@ -136,6 +149,7 @@ switch ($endpoint) {
                 'GET  /api/dashboard'           => 'Dashboard summary stats',
             ],
         ], 'Network Events EMS REST API v1.0.0');
+        break; // apiResponse calls exit(), but break is here for correctness
 
     case 'auth':
         require_once __DIR__ . '/auth.php';

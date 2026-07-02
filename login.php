@@ -21,6 +21,24 @@ $expectedRoleRaw = strtolower(trim((string) ($_POST['expected_role'] ?? '')));
 $expectedRole = ($expectedRoleRaw === 'admin' || $expectedRoleRaw === 'employee') ? $expectedRoleRaw : '';
 $returnUrl = 'index.php' . ($expectedRole !== '' ? ('?role=' . urlencode($expectedRole)) : '');
 
+// CSRF validation
+if (!verify_csrf_token()) {
+    $_SESSION['login_error'] = 'Invalid request. Please try again.';
+    header('Location: ' . $returnUrl);
+    exit();
+}
+
+// Basic rate limiting: max 5 login attempts per 5 minutes
+$now = time();
+$_SESSION['login_attempts'] = $_SESSION['login_attempts'] ?? [];
+$_SESSION['login_attempts'] = array_filter($_SESSION['login_attempts'], fn($t) => ($now - $t) < 300);
+if (count($_SESSION['login_attempts']) >= 5) {
+    $_SESSION['login_error'] = 'Too many login attempts. Please wait a few minutes.';
+    header('Location: ' . $returnUrl);
+    exit();
+}
+$_SESSION['login_attempts'][] = $now;
+
 if ($email === '' || $password === '') {
     $_SESSION['login_error'] = 'Please fill in all fields';
     header('Location: ' . $returnUrl);
@@ -40,7 +58,20 @@ try {
 
     $storedPassword = (string) ($user['password'] ?? '');
     $storedIsHashed = (bool) (password_get_info($storedPassword)['algo'] ?? 0);
-    $passwordOk = $storedIsHashed ? password_verify($password, $storedPassword) : ($password === $storedPassword);
+    $passwordOk = $storedIsHashed ? password_verify($password, $storedPassword) : false;
+
+    // If password was stored as plaintext (legacy), verify and hash it now
+    if (!$passwordOk && !$storedIsHashed && $storedPassword !== '' && $password === $storedPassword) {
+        $passwordOk = true;
+        // Immediately upgrade the plaintext password to a bcrypt hash
+        try {
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $stmtUpgrade = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmtUpgrade->execute([$hashedPassword, (int) $user['id']]);
+        } catch (PDOException $e) {
+            // Non-fatal: login still succeeds, hash upgrade will retry next login
+        }
+    }
 
     if (!$passwordOk) {
         $_SESSION['login_error'] = 'Invalid email or password';
@@ -70,6 +101,8 @@ try {
     // Clear any existing session variables to prevent mix-up, but preserve login_error if any
     $tempLoginError = $_SESSION['login_error'] ?? null;
     session_unset();
+    // Regenerate session ID to prevent session fixation
+    session_regenerate_id(true);
     // Restore login_error if it was present
     if ($tempLoginError !== null) {
         $_SESSION['login_error'] = $tempLoginError;
@@ -81,6 +114,8 @@ try {
     $_SESSION['email'] = $user['email'];
     $_SESSION['role'] = $role;
     $_SESSION['login_time'] = time();
+    // Clear rate limiting on successful login
+    unset($_SESSION['login_attempts']);
 
     if (($expectedRole !== '' ? $expectedRole : $_SESSION['role']) === 'admin') {
         redirect(SITE_URL . 'admin/dashboard.php');

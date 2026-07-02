@@ -51,7 +51,7 @@ switch ($requestMethod) {
                 }
             }
         } catch (PDOException $e) {
-            apiError('Database error: ' . $e->getMessage(), 500);
+            apiError('Database error.', 500);
         }
         break;
 
@@ -87,7 +87,7 @@ switch ($requestMethod) {
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
                 apiError('Email already exists.', 409);
             }
-            apiError('Database error: ' . $e->getMessage(), 500);
+            apiError('Database error.', 500);
         }
         break;
 
@@ -124,7 +124,7 @@ switch ($requestMethod) {
             }
             apiResponse(null, 'Employee updated.');
         } catch (PDOException $e) {
-            apiError('Database error: ' . $e->getMessage(), 500);
+            apiError('Database error.', 500);
         }
         break;
 
@@ -142,7 +142,7 @@ switch ($requestMethod) {
             $pdo->prepare("UPDATE users SET role = 'employee' WHERE id = ? LIMIT 1")->execute([(int) $emp['user_id']]);
             apiResponse(null, 'Employee removed.');
         } catch (PDOException $e) {
-            apiError('Database error: ' . $e->getMessage(), 500);
+            apiError('Database error.', 500);
         }
         break;
 
